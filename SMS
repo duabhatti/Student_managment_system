@@ -1,0 +1,337 @@
+import java.util.Scanner;
+
+// ---------------------------------------------------------
+// Part 3: Object-Oriented Class Structure
+// ---------------------------------------------------------
+
+class Person {
+    protected String name;
+    protected String id;
+    protected String entryTime;
+    protected String role;
+
+    public Person(String name, String id, String entryTime, String role) {
+        this.name = name;
+        this.id = id;
+        this.entryTime = entryTime;
+        this.role = role;
+    }
+
+    public void displayInfo() {
+        System.out.println("ID: " + id + " | Name: " + name + " | Role: " + role + " | Entry: " + entryTime);
+    }
+
+    public String getId() { return id; }
+    public String getEntryTime() { return entryTime; }
+    public String getRole() { return role; }
+    public String getName() { return name; }
+}
+
+class Student extends Person {
+    private String department;
+    private int semester;
+    private double[] marks;
+    private double cgpa;
+    // Simple logic for grade: A if CGPA > 3.5, else B
+    private String grade; 
+    
+    // Part 2: Full Student Record Management
+    public Student(String name, String id, String entryTime, String department, int semester, double[] marks) {
+        super(name, id, entryTime, "Student");
+        this.department = department;
+        this.semester = semester;
+        this.marks = marks;
+        calculateCGPA();
+    }
+
+    private void calculateCGPA() {
+        double total = 0;
+        for (double m : marks) {
+            total += m;
+        }
+        double avg = total / marks.length;
+        // Simplified CGPA calculation for prototype
+        this.cgpa = (avg / 100) * 4.0; 
+        this.grade = (cgpa >= 3.0) ? "A" : "B";
+    }
+
+    @Override
+    public void displayInfo() {
+        super.displayInfo();
+        System.out.println("   -> Dept: " + department + " | Sem: " + semester + " | CGPA: " + String.format("%.2f", cgpa));
+    }
+
+    public String getDepartment() { return department; }
+    public double getCgpa() { return cgpa; }
+}
+
+class Staff extends Person {
+    private String department;
+    private String shift;
+
+    public Staff(String name, String id, String entryTime, String department, String shift) {
+        super(name, id, entryTime, "Staff");
+        this.department = department;
+        this.shift = shift;
+    }
+
+    @Override
+    public void displayInfo() {
+        super.displayInfo();
+        System.out.println("   -> Dept: " + department + " | Shift: " + shift);
+    }
+}
+
+// ---------------------------------------------------------
+// Main System Class (Part 4, 5, 6 included here)
+// ---------------------------------------------------------
+
+public class CampusSystem {
+    // Arrays for data storage (as per source 68 & 100)
+    static Person[] entryLogs = new Person[300]; 
+    static Student[] studentRecords = new Student[100];
+    static int logCount = 0;
+    static int studentCount = 0;
+    static int invalidAttempts = 0;
+    static Scanner sc = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        while (true) {
+            // Part 6: Menu Requirements
+            System.out.println("\n=== CAMPUS ACCESS & STUDENT MANAGEMENT SYSTEM ===");
+            System.out.println("1. Enter Campus (Gate Entry)");
+            System.out.println("2. Add New Student Record");
+            System.out.println("3. View All Students");
+            System.out.println("4. View Campus Entry Log");
+            System.out.println("5. View Late Entries");
+            System.out.println("6. Department-Wise Student Summary");
+            System.out.println("7. Search Student by ID");
+            System.out.println("8. View Top 3 Students by CGPA");
+            System.out.println("9. Exit");
+            System.out.print("Select Option: ");
+            
+            int choice = sc.nextInt();
+            sc.nextLine(); // consume newline
+
+            switch (choice) {
+                case 1: enterCampus(); break;
+                case 2: addStudentRecord(); break;
+                case 3: viewAllStudents(); break;
+                case 4: viewEntryLogs(); break;
+                case 5: viewLateEntries(); break;
+                case 6: deptSummary(); break;
+                case 7: searchStudent(); break;
+                case 8: topStudents(); break;
+                case 9: System.out.println("Exiting System..."); return;
+                default: System.out.println("Invalid option.");
+            }
+        }
+    }
+
+    // Part 1: Campus Entry Validation System & Part 5: String Validations
+    public static void enterCampus() {
+        if (invalidAttempts >= 3) {
+            System.out.println("!!! Entry temporarily locked due to 3 wrong attempts. Try again later. !!!");
+            return;
+        }
+
+        System.out.print("Enter ID (e.g., ST123456 or SF12345): ");
+        String id = sc.nextLine().toUpperCase();
+
+        // String Validation: Check basic format
+        if (!validateIdFormat(id)) {
+            System.out.println("Access Denied: Invalid ID Format.");
+            invalidAttempts++;
+            return;
+        }
+
+        System.out.print("Enter Name: ");
+        String name = sc.nextLine();
+        // Validation: Empty name or digits in name
+        if (name.isEmpty() || name.matches(".*\\d.*")) {
+            System.out.println("Invalid Name Entry.");
+            return;
+        }
+
+        System.out.print("Enter Time (HH:MM 24hr format): ");
+        String time = sc.nextLine();
+
+        // Determine Role
+        String role = "Visitor";
+        if (id.startsWith("ST")) role = "Student";
+        else if (id.startsWith("SF")) role = "Staff";
+
+        // Validate Entry Time Logic
+        double timeVal = Double.parseDouble(time.replace(":", "."));
+        boolean isLate = false;
+        
+        if (role.equals("Student") && timeVal > 9.30) {
+            System.out.println("Marked as: Late Student");
+            isLate = true;
+        } else if (role.equals("Staff") && timeVal > 8.45) {
+            System.out.println("Marked as: Late Staff");
+            isLate = true;
+        } else if (role.equals("Visitor") && timeVal < 10.00) {
+            System.out.println("Access Denied: Visitors allowed after 10:00.");
+            return;
+        }
+
+        // Create Object and Log it
+        Person p;
+        if (role.equals("Student")) {
+            System.out.print("Enter Department: ");
+            String dept = sc.nextLine();
+            // Note: For gate entry, we make a basic student object. 
+            // Full academic record is added in Menu Option 2.
+            p = new Student(name, id, time, dept, 1, new double[]{0}); 
+        } else if (role.equals("Staff")) {
+            System.out.print("Enter Department: ");
+            String dept = sc.nextLine();
+            p = new Staff(name, id, time, dept, "Morning");
+        } else {
+             p = new Person(name, id, time, "Visitor");
+        }
+
+        // Add to log
+        if (logCount < entryLogs.length) {
+            entryLogs[logCount++] = p;
+            System.out.println("Entry Validated & Logged.");
+            invalidAttempts = 0; // Reset on success
+        } else {
+            System.out.println("Log Full.");
+        }
+    }
+
+    public static boolean validateIdFormat(String id) {
+        // Validates length and prefix
+        if (id.startsWith("ST") && id.length() == 8) return true; // ST + 6 digits
+        if (id.startsWith("SF") && id.length() == 7) return true; // SF + 5 digits
+        return false;
+    }
+
+    // Part 2: Add Full Student Record
+    public static void addStudentRecord() {
+        if (studentCount >= studentRecords.length) {
+            System.out.println("Database full.");
+            return;
+        }
+        System.out.print("Enter Student ID: ");
+        String id = sc.nextLine();
+        System.out.print("Enter Name: ");
+        String name = sc.nextLine();
+        System.out.print("Enter Dept: ");
+        String dept = sc.nextLine();
+        System.out.print("Enter Semester: ");
+        int sem = sc.nextInt();
+        
+        System.out.println("Enter marks for 3 subjects:");
+        double[] marks = new double[3];
+        for(int i=0; i<3; i++) marks[i] = sc.nextDouble();
+        sc.nextLine(); // consume newline
+
+        // Time is strictly for gate entry, using default for record
+        Student s = new Student(name, id, "00:00", dept, sem, marks);
+        studentRecords[studentCount++] = s;
+        System.out.println("Student Record Saved.");
+    }
+
+    public static void viewAllStudents() {
+        System.out.println("\n--- All Student Records ---");
+        for (int i = 0; i < studentCount; i++) {
+            studentRecords[i].displayInfo();
+        }
+    }
+
+    public static void viewEntryLogs() {
+        System.out.println("\n--- Gate Entry Logs ---");
+        for (int i = 0; i < logCount; i++) {
+            entryLogs[i].displayInfo();
+        }
+    }
+
+    public static void viewLateEntries() {
+        System.out.println("\n--- Late Entries ---");
+        for (int i = 0; i < logCount; i++) {
+            double t = Double.parseDouble(entryLogs[i].getEntryTime().replace(":", "."));
+            if ((entryLogs[i].getRole().equals("Student") && t > 9.30) ||
+                (entryLogs[i].getRole().equals("Staff") && t > 8.45)) {
+                entryLogs[i].displayInfo();
+            }
+        }
+    }
+
+    public static void deptSummary() {
+        // Simple counter logic without Maps (using syllabus arrays)
+        String[] depts = new String[studentCount];
+        int[] counts = new int[studentCount];
+        int uniqueCount = 0;
+
+        for (int i = 0; i < studentCount; i++) {
+            String d = studentRecords[i].getDepartment();
+            boolean found = false;
+            for(int j=0; j<uniqueCount; j++) {
+                if(depts[j].equalsIgnoreCase(d)) {
+                    counts[j]++;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) {
+                depts[uniqueCount] = d;
+                counts[uniqueCount] = 1;
+                uniqueCount++;
+            }
+        }
+        
+        System.out.println("\n--- Department Summary ---");
+        for(int i=0; i<uniqueCount; i++) {
+            System.out.println(depts[i] + ": " + counts[i] + " students");
+        }
+    }
+
+    public static void searchStudent() {
+        System.out.print("Enter ID to search: ");
+        String searchId = sc.nextLine();
+        boolean found = false;
+        // Search in logs
+        for(int i=0; i<logCount; i++) {
+            if(entryLogs[i].getId().equalsIgnoreCase(searchId)) {
+                System.out.println("Found in Entry Logs:");
+                entryLogs[i].displayInfo();
+                found = true;
+            }
+        }
+        // Search in records
+        for(int i=0; i<studentCount; i++) {
+            if(studentRecords[i].getId().equalsIgnoreCase(searchId)) {
+                System.out.println("Found in Academic Records:");
+                studentRecords[i].displayInfo();
+                found = true;
+            }
+        }
+        if(!found) System.out.println("ID not found.");
+    }
+
+    public static void topStudents() {
+        // Simplified top 3 global (can be refined to per dept if needed)
+        System.out.println("\n--- Top Students by CGPA ---");
+        // Bubble sort for simplicity
+        Student[] sorted = new Student[studentCount];
+        System.arraycopy(studentRecords, 0, sorted, 0, studentCount);
+
+        for(int i=0; i<studentCount-1; i++) {
+            for(int j=0; j<studentCount-i-1; j++) {
+                if(sorted[j].getCgpa() < sorted[j+1].getCgpa()) {
+                    Student temp = sorted[j];
+                    sorted[j] = sorted[j+1];
+                    sorted[j+1] = temp;
+                }
+            }
+        }
+
+        int limit = Math.min(3, studentCount);
+        for(int i=0; i<limit; i++) {
+            sorted[i].displayInfo();
+        }
+    }
+}
